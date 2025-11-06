@@ -1,10 +1,13 @@
 package com.example.photosqlite
 // MainActivity.kt
+import android.Manifest
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import com.example.photosqlite.databinding.ActivityMainBinding
 import java.io.ByteArrayOutputStream
 
@@ -16,6 +19,16 @@ class MainActivity : AppCompatActivity() {
     private lateinit var photoAdapter: PhotoAdapter
 
     private var currentImageBitmap: Bitmap? = null
+
+    // Launcher para solicitar permiso de cámara
+    private val requestPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
+            if (isGranted) {
+                takePictureLauncher.launch(null) // Si se concede el permiso, lanza la cámara
+            } else {
+                Toast.makeText(this, "Permiso de cámara denegado", Toast.LENGTH_SHORT).show()
+            }
+        }
 
     // 2. Launcher moderno para la cámara (reemplaza onActivityResult)
     private val takePictureLauncher =
@@ -39,8 +52,20 @@ class MainActivity : AppCompatActivity() {
 
         // 4. Listeners (eventos de clic)
         binding.imgPreview.setOnClickListener {
-            // Pedir permisos de cámara (ver Paso 7)
-            takePictureLauncher.launch(null) // Lanza la cámara
+            // Verificar permisos antes de lanzar la cámara
+            when {
+                ContextCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.CAMERA
+                ) == PackageManager.PERMISSION_GRANTED -> {
+                    // Permiso ya concedido, lanzar la cámara
+                    takePictureLauncher.launch(null)
+                }
+                else -> {
+                    // Pedir permiso
+                    requestPermissionLauncher.launch(Manifest.permission.CAMERA)
+                }
+            }
         }
 
         binding.btnSalvar.setOnClickListener {
